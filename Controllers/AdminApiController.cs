@@ -35,12 +35,12 @@ namespace FlightPlanner.Controllers
 
             if (!ValidateAirports(flight))
             {
-                return BadRequest("Airports cant be the same");
+                return BadRequest("Airports can't be the same");
             }
 
             if (!ValidateDates(flight))
             {
-                return BadRequest("Arrival later than departure");
+                return BadRequest("Arrival can't be later than departure");
             }
 
             Flight output = new Flight();
@@ -51,7 +51,18 @@ namespace FlightPlanner.Controllers
             output.Carrier = flight.Carrier;
             FlightStorage.AddFlight(output);
 
+            AirportStorage.AddAirport(output.To);
+
             return Created("", output);
+        }
+
+        [Route("admin-api/flights/{id}")]
+        [HttpDelete]
+        public IHttpActionResult DeleteFlight(int id)
+        {
+            var flight = FlightStorage.FindFlight(id);
+            FlightStorage.AllFlights.Remove(flight);
+            return Ok();
         }
 
         private bool ValidateNullOrEmpty(AddFlightRequest flight)
