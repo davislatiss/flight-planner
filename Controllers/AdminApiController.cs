@@ -10,14 +10,13 @@ namespace FlightPlanner.Controllers
     [BasicAuthentication]
     public class AdminApiController : ApiController
     {
+
         [Route ("admin-api/flights/{id}")]
-        
         public IHttpActionResult GetFlights(int id)
         {
             var flight = FlightStorage.FindFlight(id);
             return flight == null ? (IHttpActionResult) NotFound() : Ok();
         }
-
 
         [Route("admin-api/flights")]
         [BasicAuthentication]
@@ -51,7 +50,8 @@ namespace FlightPlanner.Controllers
             output.Carrier = flight.Carrier;
             FlightStorage.AddFlight(output);
 
-            AirportStorage.AddAirport(output.To);
+            AirportStorage.AddAirport(flight.To);
+            AirportStorage.AddAirport(flight.From);
 
             return Created("", output);
         }

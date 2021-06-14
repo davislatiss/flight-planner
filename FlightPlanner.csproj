@@ -169,6 +169,7 @@
     <Compile Include="Models\Flight.cs" />
     <Compile Include="Models\AddFlightRequest.cs" />
     <Compile Include="Models\FlightStorage.cs" />
+    <Compile Include="Models\PageResult.cs" />
     <Compile Include="Models\SearchFlightRequest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

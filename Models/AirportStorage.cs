@@ -15,10 +15,10 @@ namespace FlightPlanner.Models
             return airport;
         }
 
-        public static Airport FindAirport(string airportName)
+        public static Airport FindAirport(string name)
         {
-            var res = AllAirports.FirstOrDefault(airport => airport.AirportName.Contains(airportName));
-            return res;
+            var airport = AllAirports.Find(a => a.AirportName.ToLower().Contains(name) || a.City.ToLower().Contains(name) || a.Country.ToLower().Contains(name));
+            return airport;
         }
     }
 }

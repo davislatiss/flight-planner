@@ -14,28 +14,47 @@ namespace FlightPlanner.Controllers
     {
         [Route("api/airports")]
         [HttpGet]
-        public IHttpActionResult SearchAirports(string airport)
+        public IHttpActionResult SearchAirports(string search)
         {
-            var res = AirportStorage.FindAirport(airport); //must implement condition to find airport
-            if ()
+            var lst = new List<Airport>();
+            var res = AirportStorage.FindAirport(search.ToLower().Trim());
+
+            if (string.IsNullOrEmpty(res.AirportName) ||
+                string.IsNullOrEmpty(res.City) ||
+                string.IsNullOrEmpty(res.Country)) 
             {
-                
+               return NotFound();
             }
-            return Ok(res);
+
+            lst.Add(res);
+            return Ok(lst);
         }
 
         [Route("api/flights/search")]
         [HttpPost]
         public IHttpActionResult SearchFlights(SearchFlightRequest flight)
         {
-            return Ok(); // must implement
+            var page = new PageResult();
+            if (flight?.To == null || flight?.From == null || flight.DepartureDate == null || flight.To == flight.From)
+            {
+               return BadRequest();
+            }
+
+            var flights = FlightStorage.AllFlights.OrderBy(q => q.Id);
+            return Ok(flights.Skip((5)* 1).Take(5));
         }
 
         [Route("api/flights/{id}")]
         [HttpGet]
         public IHttpActionResult FindFlightById(int id)
         {
-            return Ok(); // must implement
+            
+            var flight = FlightStorage.FindFlight(id);
+            if (flight == null)
+            {
+                return NotFound();
+            }
+            return Ok(flight);
         }
     }
 }
