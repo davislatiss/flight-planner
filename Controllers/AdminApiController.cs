@@ -10,6 +10,7 @@ namespace FlightPlanner.Controllers
     [BasicAuthentication]
     public class AdminApiController : ApiController
     {
+        private readonly object _flightLock = new object();
 
         [Route ("admin-api/flights/{id}")]
         public IHttpActionResult GetFlights(int id)
@@ -22,47 +23,54 @@ namespace FlightPlanner.Controllers
         [BasicAuthentication]
         public IHttpActionResult PutFlight(AddFlightRequest flight)
         {
-            if (!ValidateNullOrEmpty(flight))
+            lock (_flightLock)
             {
-                return BadRequest("property is null or empty");
+                if (!ValidateNullOrEmpty(flight))
+                {
+                    return BadRequest("property is null or empty");
+                }
+
+                if (!ValidateFlightsAreUnique(flight))
+                {
+                    return Conflict();
+                }
+
+                if (!ValidateAirports(flight))
+                {
+                    return BadRequest("Airports can't be the same");
+                }
+
+                if (!ValidateDates(flight))
+                {
+                    return BadRequest("Arrival can't be later than departure");
+                }
+
+                Flight output = new Flight();
+
+                output.ArrivalTime = flight.ArrivalTime;
+                output.DepartureTime = flight.DepartureTime;
+                output.From = flight.From;
+                output.To = flight.To;
+                output.Carrier = flight.Carrier;
+                FlightStorage.AddFlight(output);
+                AirportStorage.AddAirport(flight.To);
+                AirportStorage.AddAirport(flight.From);
+
+                return Created("", output);
             }
-
-            if (!ValidateFlightsAreUnique(flight))
-            {
-                return Conflict();
-            }
-
-            if (!ValidateAirports(flight))
-            {
-                return BadRequest("Airports can't be the same");
-            }
-
-            if (!ValidateDates(flight))
-            {
-                return BadRequest("Arrival can't be later than departure");
-            }
-
-            Flight output = new Flight();
-            output.ArrivalTime = flight.ArrivalTime;
-            output.DepartureTime = flight.DepartureTime;
-            output.From = flight.From;
-            output.To = flight.To;
-            output.Carrier = flight.Carrier;
-            FlightStorage.AddFlight(output);
-
-            AirportStorage.AddAirport(flight.To);
-            AirportStorage.AddAirport(flight.From);
-
-            return Created("", output);
         }
 
         [Route("admin-api/flights/{id}")]
         [HttpDelete]
         public IHttpActionResult DeleteFlight(int id)
         {
-            var flight = FlightStorage.FindFlight(id);
-            FlightStorage.AllFlights.Remove(flight);
-            return Ok();
+            lock (_flightLock)
+            {
+                var flight = FlightStorage.FindFlight(id);
+                FlightStorage.AllFlights.Remove(flight);
+                return Ok();
+            }
+            
         }
 
         private bool ValidateNullOrEmpty(AddFlightRequest flight)

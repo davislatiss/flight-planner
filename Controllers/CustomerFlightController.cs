@@ -12,6 +12,7 @@ namespace FlightPlanner.Controllers
 {
     public class CustomerFlightController : ApiController
     {
+        
         [Route("api/airports")]
         [HttpGet]
         public IHttpActionResult SearchAirports(string search)
@@ -40,8 +41,13 @@ namespace FlightPlanner.Controllers
                return BadRequest();
             }
 
-            var flights = FlightStorage.AllFlights.OrderBy(q => q.Id);
-            return Ok(flights.Skip((5)* 1).Take(5));
+            foreach (var f in FlightStorage.AllFlights)
+            {
+                page.Page += 1;
+                page.TotalItems += 1;
+            }
+
+            return Ok(page);
         }
 
         [Route("api/flights/{id}")]
