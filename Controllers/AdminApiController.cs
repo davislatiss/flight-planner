@@ -15,8 +15,11 @@ namespace FlightPlanner.Controllers
         [Route ("admin-api/flights/{id}")]
         public IHttpActionResult GetFlights(int id)
         {
-            var flight = FlightStorage.FindFlight(id);
-            return flight == null ? (IHttpActionResult) NotFound() : Ok();
+            lock (_flightLock)
+            {
+                var flight = FlightStorage.FindFlight(id);
+                return flight == null ? (IHttpActionResult) NotFound() : Ok();
+            }
         }
 
         [Route("admin-api/flights")]
@@ -25,6 +28,8 @@ namespace FlightPlanner.Controllers
         {
             lock (_flightLock)
             {
+                Flight output = new Flight();
+
                 if (!ValidateNullOrEmpty(flight))
                 {
                     return BadRequest("property is null or empty");
@@ -44,8 +49,6 @@ namespace FlightPlanner.Controllers
                 {
                     return BadRequest("Arrival can't be later than departure");
                 }
-
-                Flight output = new Flight();
 
                 output.ArrivalTime = flight.ArrivalTime;
                 output.DepartureTime = flight.DepartureTime;
@@ -70,67 +73,81 @@ namespace FlightPlanner.Controllers
                 FlightStorage.AllFlights.Remove(flight);
                 return Ok();
             }
-            
         }
 
         private bool ValidateNullOrEmpty(AddFlightRequest flight)
         {
-            if (string.IsNullOrEmpty(flight.Carrier) ||
-                flight.To == null ||
-                flight.From == null ||
-                string.IsNullOrEmpty(flight.To?.AirportName) ||
-                string.IsNullOrEmpty(flight.To?.City) ||
-                string.IsNullOrEmpty(flight.To?.Country) ||
-                string.IsNullOrEmpty(flight.From?.AirportName) ||
-                string.IsNullOrEmpty(flight.From?.City) ||
-                string.IsNullOrEmpty(flight.From?.Country) ||
-                string.IsNullOrEmpty(flight.DepartureTime) ||
-                string.IsNullOrEmpty(flight.ArrivalTime)
-            )
+            lock (_flightLock)
             {
-                return false;
+                if (string.IsNullOrEmpty(flight.Carrier) ||
+                    flight.To == null ||
+                    flight.From == null ||
+                    string.IsNullOrEmpty(flight.To?.AirportName) ||
+                    string.IsNullOrEmpty(flight.To?.City) ||
+                    string.IsNullOrEmpty(flight.To?.Country) ||
+                    string.IsNullOrEmpty(flight.From?.AirportName) ||
+                    string.IsNullOrEmpty(flight.From?.City) ||
+                    string.IsNullOrEmpty(flight.From?.Country) ||
+                    string.IsNullOrEmpty(flight.DepartureTime) ||
+                    string.IsNullOrEmpty(flight.ArrivalTime)
+                )
+                {
+                    return false;
+                }
+
+                return true;
             }
-            return true;
         }
 
         private bool ValidateFlightsAreUnique(AddFlightRequest newFlight)
         {
-            foreach (var flight in FlightStorage.AllFlights)
+            lock (_flightLock)
             {
-                if (flight.ArrivalTime == newFlight.ArrivalTime &&
-                    flight.DepartureTime == newFlight.DepartureTime &&
-                    flight.To.AirportName == newFlight.To.AirportName &&
-                    flight.To.City == newFlight.To.City &&
-                    flight.To.Country == newFlight.To.Country &&
-                    flight.From.AirportName == newFlight.From.AirportName &&
-                    flight.From.City == newFlight.From.City &&
-                    flight.From.Country == newFlight.From.Country
-                )
+                foreach (var flight in FlightStorage.AllFlights)
                 {
-                    return false;   
+                    if (flight.ArrivalTime == newFlight.ArrivalTime &&
+                        flight.DepartureTime == newFlight.DepartureTime &&
+                        flight.To.AirportName == newFlight.To.AirportName &&
+                        flight.To.City == newFlight.To.City &&
+                        flight.To.Country == newFlight.To.Country &&
+                        flight.From.AirportName == newFlight.From.AirportName &&
+                        flight.From.City == newFlight.From.City &&
+                        flight.From.Country == newFlight.From.Country
+                    )
+                    {
+                        return false;
+                    }
                 }
+
+                return true;
             }
-            return true;
         }
 
         private bool ValidateAirports(AddFlightRequest flight)
         {
-            if (flight.From.AirportName.ToLower().Trim() == flight.To.AirportName.ToLower().Trim())
+            lock (_flightLock)
             {
-                return false;
+                if (flight.From.AirportName.ToLower().Trim() == flight.To.AirportName.ToLower().Trim())
+                {
+                    return false;
+                }
+
+                return true;
             }
-            return true;
         }
 
         private bool ValidateDates(AddFlightRequest flight)
         {
-            var arrivalTime = DateTime.Parse(flight.ArrivalTime);
-            var departureTime = DateTime.Parse(flight.DepartureTime);
-            if (departureTime >= arrivalTime)
+            lock (_flightLock)
             {
-                return false;
+                var arrivalTime = DateTime.Parse(flight.ArrivalTime);
+                var departureTime = DateTime.Parse(flight.DepartureTime);
+                if (departureTime >= arrivalTime)
+                {
+                    return false;
+                }
+                return true;
             }
-            return true;
         }
     }
 }

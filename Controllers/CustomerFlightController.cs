@@ -9,58 +9,69 @@ using FlightPlanner.Models;
 
 
 namespace FlightPlanner.Controllers
-{
+{   
     public class CustomerFlightController : ApiController
     {
-        
+        private readonly object _flightLock = new object();
+
         [Route("api/airports")]
         [HttpGet]
         public IHttpActionResult SearchAirports(string search)
         {
-            var lst = new List<Airport>();
-            var res = AirportStorage.FindAirport(search.ToLower().Trim());
-
-            if (string.IsNullOrEmpty(res.AirportName) ||
-                string.IsNullOrEmpty(res.City) ||
-                string.IsNullOrEmpty(res.Country)) 
+            lock (_flightLock)
             {
-               return NotFound();
-            }
+                var lst = new List<Airport>();
+                var res = AirportStorage.FindAirport(search.ToLower().Trim());
 
-            lst.Add(res);
-            return Ok(lst);
+                if (string.IsNullOrEmpty(res.AirportName) ||
+                    string.IsNullOrEmpty(res.City) ||
+                    string.IsNullOrEmpty(res.Country))
+                {
+                    return NotFound();
+                }
+
+                lst.Add(res);
+                return Ok(lst);
+            }
         }
 
         [Route("api/flights/search")]
         [HttpPost]
         public IHttpActionResult SearchFlights(SearchFlightRequest flight)
         {
-            var page = new PageResult();
-            if (flight?.To == null || flight?.From == null || flight.DepartureDate == null || flight.To == flight.From)
+            lock (_flightLock)
             {
-               return BadRequest();
-            }
+                var page = new PageResult();
+                if (flight?.To == null || flight?.From == null || flight.DepartureDate == null ||
+                    flight.To == flight.From)
+                {
+                    return BadRequest();
+                }
 
-            foreach (var f in FlightStorage.AllFlights)
-            {
-                page.Page += 1;
-                page.TotalItems += 1;
-            }
+                foreach (var f in FlightStorage.AllFlights)
+                {
+                    page.Page += 1;
+                    page.TotalItems += 1;
+                }
 
-            return Ok(page);
+                return Ok(page);
+            }
         }
 
         [Route("api/flights/{id}")]
         [HttpGet]
         public IHttpActionResult FindFlightById(int id)
         {
-            
-            var flight = FlightStorage.FindFlight(id);
-            if (flight == null)
+            lock (_flightLock)
             {
-                return NotFound();
+                var flight = FlightStorage.FindFlight(id);
+                if (flight == null)
+                {
+                    return NotFound();
+                }
+
+                return Ok(flight);
             }
-            return Ok(flight);
         }
     }
 }
