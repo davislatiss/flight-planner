@@ -60,16 +60,12 @@ namespace FlightPlanner.Controllers
                 output.From = flight.From;
                 output.To = flight.To;
                 output.Carrier = flight.Carrier;
-                FlightStorage.AddFlight(output);
-
+                
                 using (var ctx = new FlightPlannerDbContext())
                 {
                     ctx.Flights.Add(output);
                     ctx.SaveChanges();
                 }
-
-                AirportStorage.AddAirport(flight.To);
-                AirportStorage.AddAirport(flight.From);
 
                 return Created("", output);
             }
@@ -123,23 +119,26 @@ namespace FlightPlanner.Controllers
         {
             lock (_flightLock)
             {
-                foreach (var flight in FlightStorage.AllFlights)
+                using (var ctx = new FlightPlannerDbContext())
                 {
-                    if (flight.ArrivalTime == newFlight.ArrivalTime &&
-                        flight.DepartureTime == newFlight.DepartureTime &&
-                        flight.To.AirportName == newFlight.To.AirportName &&
-                        flight.To.City == newFlight.To.City &&
-                        flight.To.Country == newFlight.To.Country &&
-                        flight.From.AirportName == newFlight.From.AirportName &&
-                        flight.From.City == newFlight.From.City &&
-                        flight.From.Country == newFlight.From.Country
-                    )
+                    foreach (var flight in ctx.Flights)
                     {
-                        return false;
+                        if (flight.Carrier == newFlight.Carrier &&
+                            flight.ArrivalTime == newFlight.ArrivalTime &&
+                            flight.DepartureTime == newFlight.DepartureTime &&
+                            flight.To.AirportName == newFlight.To.AirportName &&
+                            flight.To.City == newFlight.To.City &&
+                            flight.To.Country == newFlight.To.Country &&
+                            flight.From.AirportName == newFlight.From.AirportName &&
+                            flight.From.City == newFlight.From.City &&
+                            flight.From.Country == newFlight.From.Country
+                        )
+                        {
+                            return false;
+                        }
                     }
+                    return true;
                 }
-
-                return true;
             }
         }
 

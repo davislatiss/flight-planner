@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.Entity;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Web.Http;
 using FlightPlanner.Attributes;
+using FlightPlanner.DbContext;
 using FlightPlanner.Models;
 
 
@@ -20,18 +22,13 @@ namespace FlightPlanner.Controllers
         {
             lock (_flightLock)
             {
-                var lst = new List<Airport>();
-                var res = AirportStorage.FindAirport(search.ToLower().Trim());
-
-                if (string.IsNullOrEmpty(res.AirportName) ||
-                    string.IsNullOrEmpty(res.City) ||
-                    string.IsNullOrEmpty(res.Country))
+                using (var ctx = new FlightPlannerDbContext())
                 {
-                    return NotFound();
+                    var res = ctx.Airports.Where(a => a.AirportName.ToLower().Contains(search) ||
+                                                               a.City.ToLower().Contains(search) ||
+                                                               a.Country.ToLower().Contains(search));
+                    return Ok(res);
                 }
-
-                lst.Add(res);
-                return Ok(lst);
             }
         }
 
@@ -41,20 +38,23 @@ namespace FlightPlanner.Controllers
         {
             lock (_flightLock)
             {
-                var page = new PageResult();
-                if (flight?.To == null || flight?.From == null || flight.DepartureDate == null ||
-                    flight.To == flight.From)
+                using (var ctx = new FlightPlannerDbContext())
                 {
-                    return BadRequest();
-                }
+                    var page = new PageResult();
+                    if (flight?.To == null || flight?.From == null || flight.DepartureDate == null ||
+                        flight.To == flight.From)
+                    {
+                        return BadRequest();
+                    }
 
-                foreach (var f in FlightStorage.AllFlights)
-                {
-                    page.Page += 1;
-                    page.TotalItems += 1;
-                }
+                    foreach (var f in ctx.Flights)
+                    {
+                        page.Page += 1;
+                        page.TotalItems += 1;
+                    }
 
-                return Ok(page);
+                    return Ok(page);
+                }
             }
         }
 
@@ -64,13 +64,17 @@ namespace FlightPlanner.Controllers
         {
             lock (_flightLock)
             {
-                var flight = FlightStorage.FindFlight(id);
-                if (flight == null)
+                using (var ctx = new FlightPlannerDbContext())
                 {
-                    return NotFound();
-                }
+                    var flight = ctx.Flights.Include(f => f.From).Include(f => f.To).FirstOrDefault(f => f.Id == id);
 
-                return Ok(flight);
+                    if (flight == null)
+                    {
+                        return NotFound();
+                    }
+
+                    return Ok(flight);
+                }
             }
         }
     }
