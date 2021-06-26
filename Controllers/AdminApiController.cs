@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.Entity;
 using System.Linq;
 using System.Web.Http;
 using FlightPlanner.Attributes;
+using FlightPlanner.DbContext;
 using FlightPlanner.Models;
 
 namespace FlightPlanner.Controllers
@@ -17,8 +19,11 @@ namespace FlightPlanner.Controllers
         {
             lock (_flightLock)
             {
-                var flight = FlightStorage.FindFlight(id);
-                return flight == null ? (IHttpActionResult) NotFound() : Ok();
+                using (var ctx = new FlightPlannerDbContext())
+                {
+                    var flight = ctx.Flights.Include(f => f.From).Include(f => f.To).SingleOrDefault(f => f.Id == id);
+                    return flight == null ? (IHttpActionResult)NotFound() : Ok(flight);
+                }
             }
         }
 
@@ -56,6 +61,13 @@ namespace FlightPlanner.Controllers
                 output.To = flight.To;
                 output.Carrier = flight.Carrier;
                 FlightStorage.AddFlight(output);
+
+                using (var ctx = new FlightPlannerDbContext())
+                {
+                    ctx.Flights.Add(output);
+                    ctx.SaveChanges();
+                }
+
                 AirportStorage.AddAirport(flight.To);
                 AirportStorage.AddAirport(flight.From);
 
@@ -69,9 +81,17 @@ namespace FlightPlanner.Controllers
         {
             lock (_flightLock)
             {
-                var flight = FlightStorage.FindFlight(id);
-                FlightStorage.AllFlights.Remove(flight);
-                return Ok();
+                using (var ctx = new FlightPlannerDbContext())
+                {
+                    var flight = ctx.Flights.SingleOrDefault(f => f.Id == id);
+                    if (flight == null)
+                    {
+                        return Ok();
+                    }
+                    ctx.Flights.Remove(flight);
+                    ctx.SaveChanges();
+                    return Ok();
+                }
             }
         }
 
