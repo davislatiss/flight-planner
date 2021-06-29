@@ -40,7 +40,7 @@ namespace FlightPlanner.Controllers
                     return BadRequest("property is null or empty");
                 }
 
-                if (!ValidateFlightsAreUnique(flight))
+                if (ValidateFlightsAreUnique(flight))
                 {
                     return Conflict();
                 }
@@ -121,23 +121,17 @@ namespace FlightPlanner.Controllers
             {
                 using (var ctx = new FlightPlannerDbContext())
                 {
-                    foreach (var flight in ctx.Flights)
-                    {
-                        if (flight.Carrier == newFlight.Carrier &&
-                            flight.ArrivalTime == newFlight.ArrivalTime &&
-                            flight.DepartureTime == newFlight.DepartureTime &&
-                            flight.To.AirportName == newFlight.To.AirportName &&
-                            flight.To.City == newFlight.To.City &&
-                            flight.To.Country == newFlight.To.Country &&
-                            flight.From.AirportName == newFlight.From.AirportName &&
-                            flight.From.City == newFlight.From.City &&
-                            flight.From.Country == newFlight.From.Country
-                        )
-                        {
-                            return false;
-                        }
-                    }
-                    return true;
+                    return (ctx.Flights.Any(x =>
+                        x.From.AirportName == newFlight.From.AirportName &&
+                        x.From.City == newFlight.From.City &&
+                        x.From.Country == newFlight.From.Country &&
+                        x.To.AirportName == newFlight.To.AirportName &&
+                        x.To.City == newFlight.To.City &&
+                        x.To.Country == newFlight.To.Country &&
+                        x.Carrier == newFlight.Carrier &&
+                        x.ArrivalTime == newFlight.ArrivalTime &&
+                        x.DepartureTime == newFlight.DepartureTime
+                    ));
                 }
             }
         }

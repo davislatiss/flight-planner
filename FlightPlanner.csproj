@@ -165,9 +165,7 @@
     <Compile Include="Attributes\BasicAuthenticationAttribute.cs" />
     <Compile Include="Controllers\AdminApiController.cs" />
     <Compile Include="Controllers\CustomerFlightController.cs" />
-    <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\TestingApiController.cs" />
-    <Compile Include="Controllers\ValuesController.cs" />
     <Compile Include="DbContext\FlightPlannerDbContext.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>

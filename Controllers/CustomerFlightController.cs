@@ -34,23 +34,28 @@ namespace FlightPlanner.Controllers
 
         [Route("api/flights/search")]
         [HttpPost]
-        public IHttpActionResult SearchFlights(SearchFlightRequest flight)
+        public IHttpActionResult SearchFlights(SearchFlightRequest request)
         {
             lock (_flightLock)
             {
                 using (var ctx = new FlightPlannerDbContext())
                 {
-                    var page = new PageResult();
-                    if (flight?.To == null || flight?.From == null || flight.DepartureDate == null ||
-                        flight.To == flight.From)
+                    var page = new PageResult<Flight>();
+                    if (request?.To == null || request?.From == null || request.DepartureDate == null ||
+                        request.To == request.From)
                     {
                         return BadRequest();
                     }
 
-                    foreach (var f in ctx.Flights)
+                    foreach (var flight in ctx.Flights)
                     {
-                        page.Page += 1;
-                        page.TotalItems += 1;
+                        if (flight.From.AirportName == request.From &&
+                            flight.To.AirportName == request.To &&
+                            flight.DepartureTime.Substring(0, 10) == request.DepartureDate)
+                        {
+                            page.TotalItems++;
+                            page.Items.Add(flight);
+                        }
                     }
 
                     return Ok(page);

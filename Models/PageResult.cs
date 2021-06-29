@@ -5,10 +5,11 @@ using System.Web;
 
 namespace FlightPlanner.Models
 {
-    public class PageResult
+    public class PageResult<T> where T : Flight
+
     {
-        public int Page { get; set; }
-        public int TotalItems { get; set; }
-        public List<Flight> Items = new List<Flight>();
+    public int Page { get; set; }
+    public int TotalItems { get; set; }
+    public List<T> Items = new List<T>();
     }
 }
