@@ -18,23 +18,40 @@ namespace FlightPlanner.Controllers
 
         [Route("api/airports")]
         [HttpGet]
-        public IHttpActionResult SearchAirports(string search)
+        public IHttpActionResult GetAirports(string search)
         {
             lock (_flightLock)
             {
                 using (var ctx = new FlightPlannerDbContext())
                 {
-                    var res = ctx.Airports.Where(a => a.AirportName.ToLower().Contains(search) ||
-                                                               a.City.ToLower().Contains(search) ||
-                                                               a.Country.ToLower().Contains(search));
-                    return Ok(res);
+                    var output = new List<Airport>();
+                    search = search.ToUpper().Trim();
+
+                    foreach (var x in ctx.Flights.Include(x => x.To).Include(x => x.From))
+                    {
+                        if (x.To.AirportName.ToUpper().Contains(search) ||
+                            x.To.City.ToUpper().Contains(search) ||
+                            x.To.Country.ToUpper().Contains(search))
+                        {
+                            output.Add(x.To);
+                        }
+
+                        if (x.From.AirportName.ToUpper().Contains(search) ||
+                            x.From.City.ToUpper().Contains(search) ||
+                            x.From.Country.ToUpper().Contains(search))
+                        {
+                            output.Add(x.From);
+                        }
+                    }
+
+                    return Ok(output);
                 }
             }
         }
 
-        [Route("api/flights/search")]
         [HttpPost]
-        public IHttpActionResult SearchFlights(SearchFlightRequest request)
+        [Route("api/flights/search")]
+        public IHttpActionResult PostFlights(SearchFlightRequest request)
         {
             lock (_flightLock)
             {
@@ -49,15 +66,9 @@ namespace FlightPlanner.Controllers
 
                     foreach (var flight in ctx.Flights)
                     {
-                        if (flight.From.AirportName == request.From &&
-                            flight.To.AirportName == request.To &&
-                            flight.DepartureTime.Substring(0, 10) == request.DepartureDate)
-                        {
-                            page.TotalItems++;
-                            page.Items.Add(flight);
-                        }
+                        page.TotalItems++;
+                        page.Items.Add(flight);
                     }
-
                     return Ok(page);
                 }
             }
