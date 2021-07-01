@@ -12,7 +12,7 @@ namespace FlightPlanner.Controllers
     [BasicAuthentication]
     public class AdminApiController : ApiController
     {
-        private readonly object _flightLock = new object();
+        private static readonly object _flightLock = new object();
 
         [Route ("admin-api/flights/{id}")]
         public IHttpActionResult GetFlights(int id)
@@ -93,8 +93,7 @@ namespace FlightPlanner.Controllers
 
         private bool ValidateNullOrEmpty(AddFlightRequest flight)
         {
-            lock (_flightLock)
-            {
+            
                 if (string.IsNullOrEmpty(flight.Carrier) ||
                     flight.To == null ||
                     flight.From == null ||
@@ -112,7 +111,7 @@ namespace FlightPlanner.Controllers
                 }
 
                 return true;
-            }
+            
         }
 
         private bool ValidateFlightsAreUnique(AddFlightRequest newFlight)
@@ -138,21 +137,19 @@ namespace FlightPlanner.Controllers
 
         private bool ValidateAirports(AddFlightRequest flight)
         {
-            lock (_flightLock)
-            {
+            
                 if (flight.From.AirportName.ToLower().Trim() == flight.To.AirportName.ToLower().Trim())
                 {
                     return false;
                 }
 
                 return true;
-            }
+            
         }
 
         private bool ValidateDates(AddFlightRequest flight)
         {
-            lock (_flightLock)
-            {
+            
                 var arrivalTime = DateTime.Parse(flight.ArrivalTime);
                 var departureTime = DateTime.Parse(flight.DepartureTime);
                 if (departureTime >= arrivalTime)
@@ -160,7 +157,7 @@ namespace FlightPlanner.Controllers
                     return false;
                 }
                 return true;
-            }
+            
         }
     }
 }
